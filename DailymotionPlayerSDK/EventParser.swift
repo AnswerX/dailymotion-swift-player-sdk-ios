@@ -4,12 +4,62 @@
 
 import Foundation
 
-public enum PlayerEvent {
-  
-  case timeEvent(name: String, time: Double)
-  case namedEvent(name : String, data: [String: String]?)
-  case errorEvent(error: PlayerError)
+@objc public class TimeEvent: NSObject {
+	let name: String?
+	let time: Double?
+	init(name: String?, time: Double?) {
+		self.name = name
+		self.time = time
+	}
 }
+
+@objc public class NameEvent: NSObject {
+	let name: String?
+	let data: [String: String]?
+
+	init(name: String? = nil,
+			 data: [String : String]? = nil) {
+		self.name = name
+		self.data = data
+	}
+}
+
+@objc public class ErrorEvent: NSObject {
+	 let title: String?
+	 let code: String?
+	 let message: String?
+
+	init(title: String? = nil,
+			 code: String? = nil,
+			 message: String? = nil) {
+		self.title = title
+		self.code = code
+		self.message = message
+	}
+}
+
+@objc public class PlayerHandler: NSObject {
+	let timeEvent: TimeEvent?
+	let nameEvent: NameEvent?
+	let errorEvent: ErrorEvent?
+
+	init(timeEvent: TimeEvent? = nil,
+			 nameEvent: NameEvent? = nil,
+			 errorEvent: ErrorEvent? = nil) {
+		self.timeEvent = timeEvent
+		self.nameEvent = nameEvent
+		self.errorEvent = errorEvent
+	}
+
+}
+
+//public enum PlayerEvent {
+//
+//  case timeEvent(name: String, time: Double)
+//  case namedEvent(name : String, data: [String: String]?)
+//  case errorEvent(error: PlayerError)
+//
+//}
 
 struct WebPlayerEvent {
   static let videoStart = "video_start"
@@ -85,21 +135,22 @@ final class EventParser {
     }
   }
   
-  static func parseEvent(from: Any) -> PlayerEvent? {
-    guard let message = from as? String else { return nil }
-    
-    let eventAndParameters = parseEventAndParameters(from: message)
-    
-    guard let event = eventAndParameters[Keys.event] else { return nil }
-    
-    if let time = parseTime(from: eventAndParameters) {
-      return .timeEvent(name: event, time: time)
-    } else if let error = parseError(from: eventAndParameters) {
-      return .errorEvent(error: error)
-    } else {
-      return .namedEvent(name: event, data: parseData(from: eventAndParameters))
-    }
-  }
+	static func parseEvent(from: Any) -> PlayerHandler? {
+		guard let message = from as? String else { return nil }
+
+		let eventAndParameters = parseEventAndParameters(from: message)
+
+		guard let event = eventAndParameters[Keys.event] else { return nil }
+
+		if let time = parseTime(from: eventAndParameters) {
+			return PlayerHandler(timeEvent: TimeEvent(name: event, time: time))
+		} else if let error = parseError(from: eventAndParameters) {
+			return PlayerHandler(errorEvent: error)
+		} else {
+			return PlayerHandler(nameEvent: NameEvent(name: event, data: parseData(from: eventAndParameters)))
+
+		}
+	}
   
   private static func parseEventAndParameters(from: String) -> [String: String] {
     let splitedEvents = from.components(separatedBy: "&").map({ $0.components(separatedBy: "=") })
@@ -132,12 +183,11 @@ final class EventParser {
     return sanitizedData.isEmpty ? nil : sanitizedData
   }
   
-  private static func parseError(from eventAndParameters: [String: String]) -> PlayerError? {
+  private static func parseError(from eventAndParameters: [String: String]) -> ErrorEvent? {
     guard let code = eventAndParameters[Keys.Error.code] else { return nil }
     
     let title: String = eventAndParameters[Keys.Error.title] ?? ""
     let message: String = eventAndParameters[Keys.Error.message] ?? ""
-    
-    return PlayerError(title: title, code: code, message: message)
+    return ErrorEvent(title: title, code: code, message: message)
   }
 }
