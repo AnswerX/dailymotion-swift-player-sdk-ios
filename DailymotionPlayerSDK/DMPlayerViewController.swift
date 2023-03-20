@@ -9,9 +9,9 @@ import UIKit
 import WebKit
 import AVKit
 
-public protocol DMPlayerViewControllerDelegate: AnyObject {
+@objc public protocol DMPlayerViewControllerDelegate: AnyObject {
   
-  func player(_ player: DMPlayerViewController, didReceiveEvent event: PlayerEvent)
+//  func player(_ player: DMPlayerViewController, didReceiveEvent event: PlayerEvent)
   func player(_ player: DMPlayerViewController, openUrl url: URL)
   func playerDidInitialize(_ player: DMPlayerViewController)
   func player(_ player: DMPlayerViewController, didFailToInitializeWithError error: Error)
@@ -138,6 +138,42 @@ open class DMPlayerViewController: UIViewController {
       }
     }
   }
+
+	@objc public init(parameters: [String: Any], baseUrl: URL? = nil, accessToken: String? = nil,
+										cookies: [HTTPCookie]? = nil, allowIDFA: Bool = true, allowPiP: Bool = true, allowAudioSessionActive: Bool = true) {
+		super.init(nibName: nil, bundle: nil)
+		self.allowAudioSessionActive = allowAudioSessionActive
+
+		if OMIDDailymotionSDK.shared.isActive {
+			allowOMSDK = true
+		} else {
+			if
+				let _ = DMPlayerViewController.omidScriptUrl,
+				OMIDDailymotionSDK.shared.activate()
+			{
+		allowOMSDK = true
+			} else {
+				allowOMSDK = false
+			}
+		}
+
+		self.allowIDFA = allowIDFA
+
+		NotificationCenter.default.addObserver(self, selector: #selector(self.willEnterInForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+		setAudioSession()
+
+		if parameters.contains(where: { $0.key == DMPlayerViewController.loggerParameterKey }) {
+			loggerEnabled = true
+		}
+
+		var cookiesToLoad: [HTTPCookie] = []
+		cookiesToLoad.append(contentsOf: cookies ?? [])
+		if let consentCookie = buildConsentCookie() {
+			cookiesToLoad.append(consentCookie)
+		}
+
+		self.loadWebView(parameters: parameters, baseUrl: baseUrl, accessToken: accessToken, cookies: cookiesToLoad, allowPiP: allowPiP)
+	}
 
   /// Initialize a new instance of the player
   /// - Parameters:
@@ -278,7 +314,7 @@ open class DMPlayerViewController: UIViewController {
   ///
   /// - Parameter videoId: video's XID
   /// - Parameter params: (Optional) String encoded Player parameters
-  open func load(videoId: String, params: String? = nil, completion: (() -> ())? = nil) {
+  @objc open func load(videoId: String, params: String? = nil, completion: (() -> ())? = nil) {
     guard isInitialized else {
       self.videoIdToLoad = videoId
       self.paramsToLoad = params
@@ -535,7 +571,7 @@ extension DMPlayerViewController: WKScriptMessageHandler {
         handleOmsdkSignals(event)
       }
 
-      delegate?.player(self, didReceiveEvent: event)
+//      delegate?.player(self, didReceiveEvent: event)
     }
   }
   
