@@ -107,7 +107,7 @@ open class DMPlayerViewController: UIViewController {
   fileprivate var videoIdToLoad: String?
   fileprivate var paramsToLoad: String?
   
-  open weak var delegate: DMPlayerViewControllerDelegate?
+  @objc open weak var delegate: DMPlayerViewControllerDelegate?
   /// OM SDK
   private static let omidPartnerName = "Dailymotion"
   private static let omidPartnerVersion = "6.7.5"
@@ -503,12 +503,12 @@ open class DMPlayerViewController: UIViewController {
     return url
   }
   
-  open func toggleControls(show: Bool) {
+  @objc open func toggleControls(show: Bool) {
     let hasControls = show ? "1" : "0"
     notifyPlayerApi(method: "controls", argument: hasControls)
   }
   
-  final public func notifyPlayerApi(method: String, argument: String? = nil, completion: (() -> ())? = nil) {
+  @objc final public func notifyPlayerApi(method: String, argument: String? = nil, completion: (() -> ())? = nil) {
     let playerArgument = argument != nil ? argument! : "null"
     
     webView.evaluateJavaScript("player.api('\(method)', \(playerArgument))") { _,_ in
@@ -516,29 +516,29 @@ open class DMPlayerViewController: UIViewController {
     }
   }
   
-  open func toggleFullscreen() {
+  @objc open func toggleFullscreen() {
     notifyPlayerApi(method: "notifyFullscreenChanged")
   }
   
-  open func play() {
+  @objc open func play() {
     notifyPlayerApi(method: "play")
   }
   
-  open func pause() {
+  @objc open func pause() {
     notifyPlayerApi(method: "pause")
   }
   
-  open func seek(to: TimeInterval) {
+  @objc open func seek(to: TimeInterval) {
     notifyPlayerApi(method: "seek", argument: "\(to)")
   }
   
-  open func mute(completion: (() -> ())? = nil) {
+  @objc open func mute(completion: (() -> ())? = nil) {
     webView.evaluateJavaScript("player.mute()") { _,_ in
       completion?()
     }
   }
   
-  open func unmute(completion: (() -> ())? = nil) {
+  @objc open func unmute(completion: (() -> ())? = nil) {
     webView.evaluateJavaScript("player.unmute()") { _,_ in
       completion?()
     }
