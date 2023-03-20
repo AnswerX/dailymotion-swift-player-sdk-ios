@@ -680,7 +680,7 @@ extension DMPlayerViewController {
 
 }
 
-// MARK: - OMSDK
+	// MARK: - OMSDK
 private extension DMPlayerViewController {
 
 	func handleOmsdkSignals(_ event: PlayerHandler) {
@@ -775,7 +775,8 @@ private extension DMPlayerViewController {
 				omidMediaEvents?.playerStateChange(to: fullscreen ? .fullscreen : .normal)
 			}
 		} else if event.timeEvent?.name == WebPlayerEvent.adTimeUpdate {
-			adPosition = event.timeEvent?.time ?? 0
+
+			adPosition = event.timeEvent?.time?.doubleValue ?? 0
 			recordQuartileChange()
 		}
 
@@ -905,3 +906,4 @@ private extension DMPlayerViewController {
 		}
 	}
 }
+
