@@ -4,6 +4,21 @@
 
 import Foundation
 
+@objc public enum PlayerStatus: Int {
+	case idle = 0
+	case playing = 1
+	case paused = 2
+	case buffering = 3
+	case complete = 4
+	case volumeChange = 5
+	case fullScreenChange = 6
+	case normalScreenChange = 7
+	case resume = 8
+	case seeking = 9
+	case error = 10
+
+}
+
 @objc public class TimeEvent: NSObject {
 	@objc public let name: String?
 	@objc public let time: NSNumber?

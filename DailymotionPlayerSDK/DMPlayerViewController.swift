@@ -15,7 +15,17 @@ import AVKit
 	func player(_ player: DMPlayerViewController, openUrl url: URL)
 	func playerDidInitialize(_ player: DMPlayerViewController)
 	func player(_ player: DMPlayerViewController, didFailToInitializeWithError error: Error)
+	func playerProgress(_ progress: LoadingProgress)
+	func playerStatus(_ status: PlayerStatus)
 
+}
+
+@objc public enum LoadingProgress: Int {
+	case Init = 0
+	case start = 1
+	case firstQuartile = 2
+	case midpoint = 3
+	case thirdQuartile = 4
 }
 
 public struct OMIDFriendlyObstruction {
@@ -138,6 +148,7 @@ open class DMPlayerViewController: UIViewController {
 			}
 		}
 	}
+	@objc public var playerStatus: PlayerStatus = .error
 
 	@objc public init(parameters: [String: Any], baseUrl: URL? = nil, accessToken: String? = nil,
 					  cookies: [HTTPCookie]? = nil, allowIDFA: Bool = true, allowPiP: Bool = true, allowAudioSessionActive: Bool = true) {
@@ -680,7 +691,7 @@ extension DMPlayerViewController {
 
 }
 
-	// MARK: - OMSDK
+// MARK: - OMSDK
 private extension DMPlayerViewController {
 
 	func handleOmsdkSignals(_ event: PlayerHandler) {
@@ -748,18 +759,25 @@ private extension DMPlayerViewController {
 					break
 			}
 			endOmidSession()
+			self.playerStatus = .complete
+
 		} else if event.nameEvent?.name == WebPlayerEvent.adBufferStart {
 			omidMediaEvents?.bufferStart()
+			self.playerStatus = .buffering
+
 		} else if event.nameEvent?.name == WebPlayerEvent.adBufferEnd {
 			omidMediaEvents?.bufferFinish()
 		} else if event.nameEvent?.name == WebPlayerEvent.adPause {
 			omidMediaEvents?.pause()
 			isAdPaused = true
+			self.playerStatus = .paused
+
 		} else if event.nameEvent?.name == WebPlayerEvent.adPlay {
 			if isAdPaused {
 				omidMediaEvents?.resume()
 				isAdPaused = false
 			}
+			self.playerStatus = .playing
 		} else if event.nameEvent?.name == WebPlayerEvent.adClick {
 			omidMediaEvents?.adUserInteraction(withType: .click)
 		} else if event.nameEvent?.name == WebPlayerEvent.volumeChange {
@@ -768,18 +786,27 @@ private extension DMPlayerViewController {
 			} else {
 				omidMediaEvents?.volumeChange(to: 1)
 			}
+			self.playerStatus = .volumeChange
+
 		} else if event.nameEvent?.name == WebPlayerEvent.fullscreenChange {
 
 			if playerState == nil {
 				guard let fullscreen = (event.nameEvent?.data?[WebPlayerParam.fullscreen])?.boolValue else { return }
 				omidMediaEvents?.playerStateChange(to: fullscreen ? .fullscreen : .normal)
+				self.playerStatus = fullscreen ? .fullScreenChange : .normalScreenChange
 			}
+		} else if event.nameEvent?.name == WebPlayerEvent.adResume {
+			self.playerStatus = .resume
+		} else if event.nameEvent?.name == WebPlayerEvent.error {
+			self.playerStatus = .error
+		} else if event.nameEvent?.name == WebPlayerEvent.seeking {
+			self.playerStatus = .seeking
 		} else if event.timeEvent?.name == WebPlayerEvent.adTimeUpdate {
 
 			adPosition = event.timeEvent?.time?.doubleValue ?? 0
 			recordQuartileChange()
 		}
-
+		delegate?.playerStatus(self.playerStatus)
 	}
 
 	func parseVerificationScriptsInfo(from data: [String: String]?) -> [OMIDDailymotionVerificationScriptResource]? {
@@ -904,6 +931,18 @@ private extension DMPlayerViewController {
 			default:
 				break
 		}
+
+		var loading: LoadingProgress = .Init
+		if progressPercent >= 0 && progressPercent <= 0.01 {
+			loading = .start
+		} else if progressPercent >= 0.25 && progressPercent < 0.5 {
+			loading = .firstQuartile
+		} else if progressPercent >= 0.5 && progressPercent < 0.75 {
+			loading = .midpoint
+		} else if progressPercent >= 0.75 && progressPercent < 1 {
+			loading = .thirdQuartile
+		}
+		delegate?.playerProgress(loading)
 	}
 }
 
